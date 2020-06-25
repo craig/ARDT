@@ -14,7 +14,7 @@ q = Queue.Queue()
 addr = "";
 
 ips = []
-outfile="akami-ips.txt"
+outfile="akamai-ips.txt"
 
 f = open(outfile, "a")
 
